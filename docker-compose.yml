@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16
+    container_name: contodogusto_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-contodogusto}
+      POSTGRES_USER: ${POSTGRES_USER:-contodogusto}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-contodogusto}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: contodogusto_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    entrypoint: ["sh", "/app/entrypoint.sh"]
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8001:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: contodogusto_frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:8001/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5174:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
