@@ -32,6 +32,7 @@ async function submitLogin() {
 
 async function submitRegister() {
   error.value = ''
+
   try {
     await api.post('/auth/register/', registerForm.value)
     await submitLoginWithRegisterData()

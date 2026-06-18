@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CandidateProfile, JobRole, ProfessionalReference, WorkExperience
+from .models import CandidateProfile, CategoryItem, JobRole, ProfessionalReference, WorkExperience
 
 
 @admin.register(JobRole)
@@ -18,10 +18,50 @@ class JobRoleAdmin(admin.ModelAdmin):
         return bool(request.user and request.user.is_superuser)
 
 
+@admin.register(CategoryItem)
+class CategoryItemAdmin(admin.ModelAdmin):
+    list_display = ("type", "name", "is_active")
+    list_filter = ("type", "is_active")
+    search_fields = ("name", "description")
+
+    def has_add_permission(self, request):
+        return bool(request.user and request.user.is_superuser)
+
+    def has_change_permission(self, request, obj=None):
+        return bool(request.user and request.user.is_superuser)
+
+    def has_delete_permission(self, request, obj=None):
+        return bool(request.user and request.user.is_superuser)
+
+
 @admin.register(CandidateProfile)
 class CandidateProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "first_name", "last_name", "city", "primary_role", "years_experience")
+    list_display = ("user", "first_name", "last_name", "city", "primary_role", "years_experience", "has_sanitary_license", "has_food_handling_cert")
     filter_horizontal = ("roles",)
+    search_fields = ("user__username", "first_name", "last_name", "dni", "email")
+    fieldsets = (
+        ("Datos Personales", {
+            "fields": ("user", "first_name", "last_name", "dni", "birth_date", "personal_photo", "address", "city", "phone", "social_networks")
+        }),
+        ("Puesto al que se postula", {
+            "fields": ("role", "roles")
+        }),
+        ("Experiencia", {
+            "fields": ("years_experience", "availability", "schedule", "can_work_weekends_holidays", "expected_salary")
+        }),
+        ("Formación", {
+            "fields": ("primary_education", "secondary_education", "tertiary_education", "tertiary_details", "gastro_courses")
+        }),
+        ("Conocimientos y Habilidades", {
+            "fields": ("skills",)
+        }),
+        ("Documentos y Certificaciones", {
+            "fields": ("has_sanitary_license", "has_food_handling_cert", "has_own_transport")
+        }),
+        ("Información General", {
+            "fields": ("bio", "observations")
+        }),
+    )
 
     def primary_role(self, obj):
         if obj.role_id:

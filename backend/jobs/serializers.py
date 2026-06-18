@@ -1,7 +1,15 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import CandidateProfile, JobRole, ProfessionalReference, WorkExperience
+from .models import CandidateProfile, CategoryItem, JobRole, ProfessionalReference, WorkExperience
+from .roles import (
+    APP_ROLE_ADMIN,
+    APP_ROLE_CLIENT,
+    APP_ROLE_WORKER,
+    PUBLIC_REGISTRATION_ROLES,
+    assign_user_role,
+    get_user_app_role,
+)
 
 
 class JobRoleSerializer(serializers.ModelSerializer):
@@ -10,27 +18,48 @@ class JobRoleSerializer(serializers.ModelSerializer):
         fields = ("id", "name")
 
 
+class CategoryItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategoryItem
+        fields = ("id", "type", "name", "description", "is_active")
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    app_role = serializers.ChoiceField(write_only=True, choices=PUBLIC_REGISTRATION_ROLES, default=APP_ROLE_WORKER)
+    gender = serializers.ChoiceField(write_only=True, choices=CandidateProfile.GENDER_CHOICES, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ("username", "email", "password")
+        fields = ("username", "email", "password", "app_role", "gender")
 
     def create(self, validated_data):
+        app_role = validated_data.pop("app_role", APP_ROLE_WORKER)
+        gender = validated_data.pop("gender", "")
         user = User.objects.create_user(
             username=validated_data["username"],
             email=validated_data.get("email", ""),
             password=validated_data["password"],
         )
-        CandidateProfile.objects.create(user=user)
+        assign_user_role(user, app_role)
+        if app_role == APP_ROLE_WORKER:
+            CandidateProfile.objects.create(user=user, gender=gender)
         return user
 
 
 class UserSerializer(serializers.ModelSerializer):
+    app_role = serializers.SerializerMethodField()
+
+    def get_app_role(self, obj):
+        return get_user_app_role(obj)
+
     class Meta:
         model = User
-        fields = ("id", "username", "email")
+        fields = ("id", "username", "email", "app_role")
+
+
+class UserRoleUpdateSerializer(serializers.Serializer):
+    app_role = serializers.ChoiceField(choices=(APP_ROLE_ADMIN, APP_ROLE_WORKER, APP_ROLE_CLIENT))
 
 
 class WorkExperienceSerializer(serializers.ModelSerializer):
@@ -117,17 +146,35 @@ class CandidateProfileSerializer(serializers.ModelSerializer):
             "user",
             "first_name",
             "last_name",
+            "gender",
             "personal_photo",
             "personal_photo_url",
+            "dni",
+            "birth_date",
+            "address",
             "phone",
             "city",
+            "social_networks",
             "role",
             "role_name",
             "roles",
             "role_names",
             "years_experience",
             "availability",
+            "schedule",
+            "can_work_weekends_holidays",
+            "expected_salary",
+            "primary_education",
+            "secondary_education",
+            "tertiary_education",
+            "tertiary_details",
+            "gastro_courses",
+            "skills",
+            "has_sanitary_license",
+            "has_food_handling_cert",
+            "has_own_transport",
             "bio",
+            "observations",
             "experiences",
             "references",
         )

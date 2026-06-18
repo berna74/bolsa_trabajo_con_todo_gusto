@@ -2,6 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../services/api'
+import femalePlaceholder from '../assets/female_placeholder_baja.png'
+import malePlaceholder from '../assets/male_placeholder_baja.png'
 
 const loading = ref(true)
 const error = ref('')
@@ -118,35 +120,20 @@ function rubroSlug(rubro) {
 
 function formatRubroLabel(rubro) {
   const value = (rubro || '').trim()
-  if (!value) {
-    return ''
+  if (!value) return ''
+  const words = value.split(' ')
+  const first = words[0]
+  let plural
+  if (/s$/i.test(first)) {
+    plural = first
+  } else if (/o$/i.test(first)) {
+    plural = first + 's/as'
+  } else if (/a$/i.test(first)) {
+    plural = first + 's'
+  } else {
+    plural = first + 's'
   }
-
-  if (/os$/i.test(value)) {
-    return `${value}/as`
-  }
-
-  if (/as$/i.test(value)) {
-    return `${value}/os`
-  }
-
-  if (/o$/i.test(value)) {
-    return `${value.slice(0, -1)}os/as`
-  }
-
-  if (/a$/i.test(value)) {
-    return `${value.slice(0, -1)}as/os`
-  }
-
-  if (/s$/i.test(value)) {
-    return value
-  }
-
-  if (/[aeiouaeiou]$/i.test(value)) {
-    return `${value}s`
-  }
-
-  return `${value}es`
+  return words.length > 1 ? `${plural} ${words.slice(1).join(' ')}` : plural
 }
 
 function sanitizePhone(phone) {
@@ -171,6 +158,10 @@ function emailLink(email, name) {
   return `mailto:${email}?subject=${subject}&body=${body}`
 }
 
+function workerFallbackPhoto(worker) {
+  return worker?.gender === 'mujer' ? femalePlaceholder : malePlaceholder
+}
+
 async function fetchWorkers() {
   loading.value = true
   error.value = ''
@@ -192,7 +183,7 @@ onMounted(fetchWorkers)
     <div class="home-header">
       <h2>Trabajadores registrados por rubro</h2>
       <label class="home-search-shell" for="worker-search-input">
-        <span class="home-search-prefix">Buscar trabajador...</span>
+        <span class="home-search-prefix">Buscar trabajador/a...</span>
         <input
           id="worker-search-input"
           v-model="workerSearch"
@@ -237,9 +228,12 @@ onMounted(fetchWorkers)
                   :alt="`Foto de ${worker.full_name}`"
                   class="worker-photo"
                 />
-                <div v-else class="worker-photo worker-photo-placeholder" aria-hidden="true">
-                  {{ worker.full_name.charAt(0).toUpperCase() }}
-                </div>
+                <img
+                  v-else
+                  :src="workerFallbackPhoto(worker)"
+                  :alt="`Placeholder de chef para ${worker.full_name}`"
+                  class="worker-photo worker-photo-placeholder"
+                />
                 <div class="worker-meta">
                   <router-link class="worker-link" :to="`/trabajador/${worker.id}`">
                     <strong>{{ worker.full_name }}</strong>

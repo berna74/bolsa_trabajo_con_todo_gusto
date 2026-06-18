@@ -2,56 +2,27 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '../services/api'
+import femalePlaceholder from '../assets/female_placeholder_baja.png'
+import malePlaceholder from '../assets/male_placeholder_baja.png'
 
 const route = useRoute()
 const loading = ref(true)
 const error = ref('')
 const groups = ref([])
 
-function rubroSlug(rubro) {
-  return rubro
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
+function sanitizePhone(phone) {
+  return (phone || '').replace(/[^\d+]/g, '')
 }
 
-function formatRubroLabel(rubro) {
-  const value = (rubro || '').trim()
+function formatDate(value) {
   if (!value) {
     return ''
   }
-
-  if (/os$/i.test(value)) {
-    return `${value}/as`
-  }
-
-  if (/as$/i.test(value)) {
-    return `${value}/os`
-  }
-
-  if (/o$/i.test(value)) {
-    return `${value.slice(0, -1)}os/as`
-  }
-
-  if (/a$/i.test(value)) {
-    return `${value.slice(0, -1)}as/os`
-  }
-
-  if (/s$/i.test(value)) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
     return value
   }
-
-  if (/[aeiouaeiou]$/i.test(value)) {
-    return `${value}s`
-  }
-
-  return `${value}es`
-}
-
-function sanitizePhone(phone) {
-  return (phone || '').replace(/[^\d+]/g, '')
+  return date.toLocaleDateString('es-AR')
 }
 
 function whatsappLink(phone, name) {
@@ -70,6 +41,10 @@ function emailLink(email, name) {
   const subject = encodeURIComponent('Contacto laboral desde ConTodoGusto')
   const body = encodeURIComponent(`Hola ${name}, vi tu perfil y me gustaría conversar sobre una oportunidad laboral.`)
   return `mailto:${email}?subject=${subject}&body=${body}`
+}
+
+function workerFallbackPhoto(worker) {
+  return worker?.gender === 'mujer' ? femalePlaceholder : malePlaceholder
 }
 
 const workerData = computed(() => {
@@ -112,16 +87,17 @@ onMounted(fetchWorkersByRole)
           :alt="`Foto de ${workerData.full_name}`"
           class="worker-photo worker-photo-lg"
         />
-        <div v-else class="worker-photo worker-photo-lg worker-photo-placeholder" aria-hidden="true">
-          {{ workerData.full_name.charAt(0).toUpperCase() }}
-        </div>
+        <img
+          v-else
+          :src="workerFallbackPhoto(workerData)"
+          :alt="`Placeholder de chef para ${workerData.full_name}`"
+          class="worker-photo worker-photo-lg worker-photo-placeholder"
+        />
 
         <div class="worker-profile-meta">
           <h2>{{ workerData.full_name }}</h2>
-          <p><strong>Rubro:</strong> {{ formatRubroLabel(workerData.rubro) }}</p>
-            <p v-if="workerData.rubros?.length"><strong>También se registra en:</strong> {{ workerData.rubros.map(formatRubroLabel).join(', ') }}</p>
-          <p><strong>Ciudad:</strong> {{ workerData.city || 'Ciudad no indicada' }}</p>
-          <p><strong>Experiencia:</strong> {{ workerData.years_experience }} años</p>
+          <p v-if="workerData.city"><strong>Ciudad:</strong> {{ workerData.city }}</p>
+          <p v-if="workerData.years_experience"><strong>Experiencia:</strong> {{ workerData.years_experience }} años</p>
           <p v-if="workerData.availability"><strong>Disponibilidad:</strong> {{ workerData.availability }}</p>
           <div class="worker-actions worker-actions-detail">
             <a
@@ -182,10 +158,80 @@ onMounted(fetchWorkersByRole)
         <p>{{ workerData.bio }}</p>
       </section>
 
+      <section
+        v-if="workerData.birth_date || workerData.address || workerData.social_networks"
+        class="worker-bio-block"
+      >
+        <h3>Datos personales</h3>
+        <p v-if="workerData.birth_date"><strong>Fecha de nacimiento:</strong> {{ formatDate(workerData.birth_date) }}</p>
+        <p v-if="workerData.address"><strong>Domicilio:</strong> {{ workerData.address }}</p>
+        <p v-if="workerData.social_networks"><strong>Redes sociales:</strong> {{ workerData.social_networks }}</p>
+      </section>
+
+      <section
+        v-if="workerData.years_experience || workerData.availability || workerData.schedule || workerData.can_work_weekends_holidays || workerData.expected_salary"
+        class="worker-bio-block"
+      >
+        <h3>Experiencia y disponibilidad</h3>
+        <p v-if="workerData.years_experience"><strong>Años de experiencia:</strong> {{ workerData.years_experience }}</p>
+        <p v-if="workerData.availability"><strong>Disponibilidad:</strong> {{ workerData.availability }}</p>
+        <p v-if="workerData.schedule"><strong>Horario preferido:</strong> {{ workerData.schedule }}</p>
+        <p v-if="workerData.can_work_weekends_holidays"><strong>Trabaja fines de semana/feriados:</strong> Sí</p>
+        <p v-if="workerData.expected_salary"><strong>Remuneración pretendida:</strong> {{ workerData.expected_salary }}</p>
+      </section>
+
+      <section
+        v-if="workerData.primary_education || workerData.secondary_education || workerData.tertiary_education || workerData.tertiary_details || workerData.gastro_courses"
+        class="worker-bio-block"
+      >
+        <h3>Formación</h3>
+        <p v-if="workerData.primary_education"><strong>Primaria:</strong> {{ workerData.primary_education }}</p>
+        <p v-if="workerData.secondary_education"><strong>Secundaria:</strong> {{ workerData.secondary_education }}</p>
+        <p v-if="workerData.tertiary_education"><strong>Terciaria/Universitaria:</strong> Sí</p>
+        <p v-if="workerData.tertiary_details"><strong>Detalle terciario:</strong> {{ workerData.tertiary_details }}</p>
+        <p v-if="workerData.gastro_courses"><strong>Cursos gastronómicos:</strong> {{ workerData.gastro_courses }}</p>
+      </section>
+
+      <section
+        v-if="workerData.skills || workerData.has_sanitary_license || workerData.has_food_handling_cert || workerData.has_own_transport"
+        class="worker-bio-block"
+      >
+        <h3>Habilidades y certificaciones</h3>
+        <p v-if="workerData.skills"><strong>Habilidades:</strong> {{ workerData.skills }}</p>
+        <p v-if="workerData.has_sanitary_license"><strong>Libreta sanitaria:</strong> Sí</p>
+        <p v-if="workerData.has_food_handling_cert"><strong>Carnet manipulación:</strong> Sí</p>
+        <p v-if="workerData.has_own_transport"><strong>Movilidad propia:</strong> Sí</p>
+      </section>
+
+      <section v-if="workerData.experiences?.length" class="worker-bio-block">
+        <h3>Experiencia laboral registrada</h3>
+        <article v-for="(exp, idx) in workerData.experiences" :key="`${exp.company_name}-${idx}`" class="list-card">
+          <p v-if="exp.company_name"><strong>Empresa:</strong> {{ exp.company_name }}</p>
+          <p v-if="exp.role"><strong>Puesto:</strong> {{ exp.role }}</p>
+          <p v-if="exp.start_date"><strong>Desde:</strong> {{ formatDate(exp.start_date) }}</p>
+          <p v-if="exp.is_current || exp.end_date"><strong>Hasta:</strong> {{ exp.is_current ? 'Actualidad' : formatDate(exp.end_date) }}</p>
+          <p v-if="exp.description"><strong>Tareas:</strong> {{ exp.description }}</p>
+        </article>
+      </section>
+
+      <section v-if="workerData.references?.length" class="worker-bio-block">
+        <h3>Referencias profesionales</h3>
+        <article v-for="(ref, idx) in workerData.references" :key="`${ref.full_name}-${idx}`" class="list-card">
+          <p v-if="ref.full_name"><strong>Nombre:</strong> {{ ref.full_name }}</p>
+          <p v-if="ref.company"><strong>Empresa:</strong> {{ ref.company }}</p>
+          <p v-if="ref.relation"><strong>Relación:</strong> {{ ref.relation }}</p>
+          <p v-if="ref.phone"><strong>Teléfono:</strong> {{ ref.phone }}</p>
+          <p v-if="ref.email"><strong>Email:</strong> {{ ref.email }}</p>
+          <p v-if="ref.note"><strong>Nota:</strong> {{ ref.note }}</p>
+        </article>
+      </section>
+
+      <section v-if="workerData.observations" class="worker-bio-block">
+        <h3>Observaciones</h3>
+        <p>{{ workerData.observations }}</p>
+      </section>
+
       <div class="detail-actions">
-        <router-link class="secondary-btn" :to="`/rubro/${rubroSlug(workerData.rubro)}`">
-          Ver más trabajadores de este rubro
-        </router-link>
         <router-link class="secondary-btn" to="/">Volver al inicio</router-link>
       </div>
     </template>

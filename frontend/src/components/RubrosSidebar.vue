@@ -16,22 +16,25 @@ function rubroSlug(rubro) {
 function formatRubroLabel(rubro) {
   const value = (rubro || '').trim()
   if (!value) return ''
-  if (/os$/i.test(value)) return `${value}/as`
-  if (/as$/i.test(value)) return `${value}/os`
-  if (/o$/i.test(value)) return `${value.slice(0, -1)}os/as`
-  if (/a$/i.test(value)) return `${value.slice(0, -1)}as/os`
-  if (/s$/i.test(value)) return value
-  if (/[aeiou]$/i.test(value)) return `${value}s`
-  return `${value}es`
+  const words = value.split(' ')
+  const first = words[0]
+  let plural
+  if (/s$/i.test(first)) {
+    plural = first
+  } else if (/o$/i.test(first)) {
+    plural = first + 's/as'
+  } else if (/a$/i.test(first)) {
+    plural = first + 's'
+  } else {
+    plural = first + 's'
+  }
+  return words.length > 1 ? `${plural} ${words.slice(1).join(' ')}` : plural
 }
 
 async function fetchGroups() {
   try {
     const { data } = await api.get('/public/workers-by-role/')
-    groups.value = data.sort((a, b) => {
-      const diff = (b.workers?.length || 0) - (a.workers?.length || 0)
-      return diff !== 0 ? diff : a.rubro.localeCompare(b.rubro)
-    })
+    groups.value = data.sort((a, b) => a.rubro.localeCompare(b.rubro, 'es', { sensitivity: 'base' }))
   } catch {
     // silencioso: el sidebar es complementario
   }
@@ -50,6 +53,9 @@ onMounted(fetchGroups)
     >
       <span class="rubros-header-link-name">{{ formatRubroLabel(group.rubro) }}</span>
       <span class="rubros-header-link-count">{{ group.workers.length }}</span>
+    </router-link>
+    <router-link to="/" class="rubros-header-link">
+      <span class="rubros-header-link-name">Todos</span>
     </router-link>
   </nav>
 </template>

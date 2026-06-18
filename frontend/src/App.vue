@@ -1,6 +1,39 @@
 <script setup>
-import brandLogo from './views/logo.jpg'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import brandLogo from './views/logo3.png'
 import RubrosSidebar from './components/RubrosSidebar.vue'
+import api from './services/api'
+import { canAccessFichas, getAppRole, hasToken, saveAppRole } from './services/auth'
+
+const route = useRoute()
+const canSeeFichasLink = ref(false)
+
+async function refreshFichasAccess() {
+  if (!hasToken()) {
+    canSeeFichasLink.value = false
+    saveAppRole('')
+    return
+  }
+
+  const cachedRole = getAppRole()
+  if (cachedRole) {
+    canSeeFichasLink.value = canAccessFichas(cachedRole)
+    return
+  }
+
+  try {
+    const { data } = await api.get('/auth/me/')
+    const appRole = data?.app_role || ''
+    saveAppRole(appRole)
+    canSeeFichasLink.value = canAccessFichas(appRole)
+  } catch {
+    canSeeFichasLink.value = false
+  }
+}
+
+onMounted(refreshFichasAccess)
+watch(() => route.fullPath, refreshFichasAccess)
 </script>
 
 <template>
@@ -16,6 +49,7 @@ import RubrosSidebar from './components/RubrosSidebar.vue'
           </span>
           <nav class="site-nav" aria-label="Navegación principal">
             <router-link to="/">Inicio</router-link>
+            <router-link v-if="canSeeFichasLink" to="/fichas">Fichas</router-link>
             <router-link to="/auth" class="nav-icon-link">
               <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path

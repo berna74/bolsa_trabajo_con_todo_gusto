@@ -9,7 +9,13 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from jobs.models import CandidateProfile, JobRole
+from jobs.roles import APP_ROLE_WORKER, assign_user_role
 
+
+FEMALE_FIRST_NAMES = {
+    "ana", "carla", "rocio", "rocío", "valeria", "julieta", "camila", "sofia", "sofía",
+    "agustina", "florencia", "micaela", "valentina", "abrina", "eugenia",
+}
 
 DEMO_WORKERS = [
     {
@@ -239,11 +245,14 @@ class Command(BaseCommand):
                     first_name=worker["first_name"],
                     last_name=worker["last_name"],
                 )
+                assign_user_role(user, APP_ROLE_WORKER)
 
+                gender = "mujer" if worker["first_name"].lower() in FEMALE_FIRST_NAMES else "hombre"
                 profile = CandidateProfile.objects.create(
                     user=user,
                     first_name=worker["first_name"],
                     last_name=worker["last_name"],
+                    gender=gender,
                     phone=f"+54 {worker['phone_prefix']} 555-{role_index + 10:02d}{persona_index:02d}",
                     city=CITY_POOL[(role_index + persona_index - 1) % len(CITY_POOL)],
                     role=role,
