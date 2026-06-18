@@ -1,73 +1,73 @@
 from django.contrib.auth.models import Group
 
-APP_ROLE_SUPERADMIN = "superadministrador"
-APP_ROLE_ADMIN = "administrador"
-APP_ROLE_WORKER = "trabajador"
-APP_ROLE_CLIENT = "cliente"
+ROL_APLICACION_SUPERADMIN = "superadministrador"
+ROL_APLICACION_ADMIN = "administrador"
+ROL_APLICACION_TRABAJADOR = "trabajador"
+ROL_APLICACION_CLIENTE = "cliente"
 
-GROUP_NAME_ADMIN = "administrador"
-GROUP_NAME_WORKER = "trabajador"
-GROUP_NAME_CLIENT = "cliente"
+NOMBRE_GRUPO_ADMIN = "administrador"
+NOMBRE_GRUPO_TRABAJADOR = "trabajador"
+NOMBRE_GRUPO_CLIENTE = "cliente"
 
-MANAGED_GROUPS = (
-    GROUP_NAME_ADMIN,
-    GROUP_NAME_WORKER,
-    GROUP_NAME_CLIENT,
+GRUPOS_GESTIONADOS = (
+    NOMBRE_GRUPO_ADMIN,
+    NOMBRE_GRUPO_TRABAJADOR,
+    NOMBRE_GRUPO_CLIENTE,
 )
 
-PUBLIC_REGISTRATION_ROLES = (
-    APP_ROLE_WORKER,
-    APP_ROLE_CLIENT,
+ROLES_REGISTRO_PUBLICO = (
+    ROL_APLICACION_TRABAJADOR,
+    ROL_APLICACION_CLIENTE,
 )
 
 
-def ensure_role_groups():
-    for group_name in MANAGED_GROUPS:
-        Group.objects.get_or_create(name=group_name)
+def asegurar_grupos_roles():
+    for nombre_grupo in GRUPOS_GESTIONADOS:
+        Group.objects.get_or_create(name=nombre_grupo)
 
 
-def get_user_app_role(user):
+def obtener_rol_aplicacion_usuario(user):
     if not user or not user.is_authenticated:
         return None
 
     if user.is_superuser:
-        return APP_ROLE_SUPERADMIN
+        return ROL_APLICACION_SUPERADMIN
 
-    if user.groups.filter(name=GROUP_NAME_ADMIN).exists():
-        return APP_ROLE_ADMIN
+    if user.groups.filter(name=NOMBRE_GRUPO_ADMIN).exists():
+        return ROL_APLICACION_ADMIN
 
-    if user.groups.filter(name=GROUP_NAME_WORKER).exists():
-        return APP_ROLE_WORKER
+    if user.groups.filter(name=NOMBRE_GRUPO_TRABAJADOR).exists():
+        return ROL_APLICACION_TRABAJADOR
 
-    if user.groups.filter(name=GROUP_NAME_CLIENT).exists():
-        return APP_ROLE_CLIENT
+    if user.groups.filter(name=NOMBRE_GRUPO_CLIENTE).exists():
+        return ROL_APLICACION_CLIENTE
 
     # Compatibilidad con usuarios existentes sin grupo.
     if hasattr(user, "candidate_profile"):
-        return APP_ROLE_WORKER
+        return ROL_APLICACION_TRABAJADOR
 
-    return APP_ROLE_CLIENT
+    return ROL_APLICACION_CLIENTE
 
 
-def assign_user_role(user, app_role):
-    if app_role == APP_ROLE_SUPERADMIN:
+def asignar_rol_usuario(user, rol_aplicacion):
+    if rol_aplicacion == ROL_APLICACION_SUPERADMIN:
         raise ValueError("El rol superadministrador se gestiona con is_superuser.")
 
-    ensure_role_groups()
+    asegurar_grupos_roles()
 
-    role_to_group = {
-        APP_ROLE_ADMIN: GROUP_NAME_ADMIN,
-        APP_ROLE_WORKER: GROUP_NAME_WORKER,
-        APP_ROLE_CLIENT: GROUP_NAME_CLIENT,
+    rol_a_grupo = {
+        ROL_APLICACION_ADMIN: NOMBRE_GRUPO_ADMIN,
+        ROL_APLICACION_TRABAJADOR: NOMBRE_GRUPO_TRABAJADOR,
+        ROL_APLICACION_CLIENTE: NOMBRE_GRUPO_CLIENTE,
     }
 
-    group_name = role_to_group.get(app_role)
-    if group_name is None:
-        raise ValueError(f"Rol invalido: {app_role}")
+    nombre_grupo = rol_a_grupo.get(rol_aplicacion)
+    if nombre_grupo is None:
+        raise ValueError(f"Rol invalido: {rol_aplicacion}")
 
-    user.groups.remove(*Group.objects.filter(name__in=MANAGED_GROUPS))
-    user.groups.add(Group.objects.get(name=group_name))
+    user.groups.remove(*Group.objects.filter(name__in=GRUPOS_GESTIONADOS))
+    user.groups.add(Group.objects.get(name=nombre_grupo))
 
     if not user.is_superuser:
-        user.is_staff = app_role == APP_ROLE_ADMIN
+        user.is_staff = rol_aplicacion == ROL_APLICACION_ADMIN
         user.save(update_fields=["is_staff"])

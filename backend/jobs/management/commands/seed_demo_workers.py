@@ -9,15 +9,15 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from jobs.models import CandidateProfile, JobRole
-from jobs.roles import APP_ROLE_WORKER, assign_user_role
+from jobs.roles import ROL_APLICACION_TRABAJADOR, asignar_rol_usuario
 
 
-FEMALE_FIRST_NAMES = {
+NOMBRES_FEMENINOS = {
     "ana", "carla", "rocio", "rocío", "valeria", "julieta", "camila", "sofia", "sofía",
     "agustina", "florencia", "micaela", "valentina", "abrina", "eugenia",
 }
 
-DEMO_WORKERS = [
+TRABAJADORES_DEMO = [
     {
         "username": "demo_sofia_moreno",
         "email": "sofia.moreno.demo@example.com",
@@ -180,7 +180,7 @@ DEMO_WORKERS = [
     },
 ]
 
-CITY_POOL = [
+CIUDADES_DEMO = [
     "Buenos Aires",
     "Córdoba",
     "Rosario",
@@ -194,15 +194,15 @@ CITY_POOL = [
 ]
 
 
-REAL_PHOTO_FILES = sorted((settings.MEDIA_ROOT / "profile_photos").glob("worker_*.jpg"))
+ARCHIVOS_FOTOS_REALES = sorted((settings.MEDIA_ROOT / "profile_photos").glob("worker_*.jpg"))
 
 
-def pick_real_photo(role_index, persona_index):
-    if not REAL_PHOTO_FILES:
+def elegir_foto_real(role_index, persona_index):
+    if not ARCHIVOS_FOTOS_REALES:
         raise RuntimeError("No se encontraron fotos reales en media/profile_photos/worker_*.jpg")
 
-    photo_index = (role_index * 10 + persona_index - 1) % len(REAL_PHOTO_FILES)
-    return REAL_PHOTO_FILES[photo_index]
+    indice_foto = (role_index * 10 + persona_index - 1) % len(ARCHIVOS_FOTOS_REALES)
+    return ARCHIVOS_FOTOS_REALES[indice_foto]
 
 
 class Command(BaseCommand):
@@ -234,7 +234,7 @@ class Command(BaseCommand):
         for role_index, role in enumerate(roles):
             role_slug = slugify(role.name)
 
-            for persona_index, worker in enumerate(DEMO_WORKERS, start=1):
+            for persona_index, worker in enumerate(TRABAJADORES_DEMO, start=1):
                 username = f"demo_{role_slug}_{persona_index:02d}"
                 email = f"{username}@example.com"
 
@@ -245,23 +245,23 @@ class Command(BaseCommand):
                     first_name=worker["first_name"],
                     last_name=worker["last_name"],
                 )
-                assign_user_role(user, APP_ROLE_WORKER)
+                asignar_rol_usuario(user, ROL_APLICACION_TRABAJADOR)
 
-                gender = "mujer" if worker["first_name"].lower() in FEMALE_FIRST_NAMES else "hombre"
+                gender = "mujer" if worker["first_name"].lower() in NOMBRES_FEMENINOS else "hombre"
                 profile = CandidateProfile.objects.create(
                     user=user,
                     first_name=worker["first_name"],
                     last_name=worker["last_name"],
                     gender=gender,
                     phone=f"+54 {worker['phone_prefix']} 555-{role_index + 10:02d}{persona_index:02d}",
-                    city=CITY_POOL[(role_index + persona_index - 1) % len(CITY_POOL)],
+                    city=CIUDADES_DEMO[(role_index + persona_index - 1) % len(CIUDADES_DEMO)],
                     role=role,
                     years_experience=worker["years_experience"] + (role_index % 3),
                     availability=worker["availability"],
                     bio=worker["bio"].format(role=role.name.lower()),
                 )
 
-                photo_path = pick_real_photo(role_index, persona_index)
+                photo_path = elegir_foto_real(role_index, persona_index)
                 avatar_name = f"demo/{role_slug}_{persona_index:02d}{photo_path.suffix.lower()}"
                 with photo_path.open("rb") as photo_file:
                     profile.personal_photo.save(avatar_name, ContentFile(photo_file.read()), save=True)

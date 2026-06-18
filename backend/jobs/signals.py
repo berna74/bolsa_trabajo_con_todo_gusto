@@ -1,10 +1,10 @@
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 
-from .roles import ensure_role_groups
+from .roles import asegurar_grupos_roles
 
 
 @receiver(post_migrate)
-def setup_default_role_groups(sender, **kwargs):
+def configurar_grupos_roles_predeterminados(sender, **kwargs):
     if sender.name == "jobs":
-        ensure_role_groups()
+        asegurar_grupos_roles()

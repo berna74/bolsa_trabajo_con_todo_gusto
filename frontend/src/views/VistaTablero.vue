@@ -1,10 +1,10 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '../services/api'
-import { clearAuth } from '../services/auth'
-import ExperienceList from '../components/ExperienceList.vue'
-import ReferenceList from '../components/ReferenceList.vue'
+import api from '../services/clienteApi'
+import { limpiarAutenticacion } from '../services/autenticacion'
+import ListaExperiencias from '../components/ListaExperiencias.vue'
+import ListaReferencias from '../components/ListaReferencias.vue'
 
 const router = useRouter()
 const loading = ref(true)
@@ -68,11 +68,11 @@ const referenceForm = ref({
   note: '',
 })
 
-function toggleProfileGender(gender, checked) {
+function alternarGeneroPerfil(gender, checked) {
   profile.value.gender = checked ? gender : ''
 }
 
-function formatRubroLabel(rubro) {
+function formatearEtiquetaRubro(rubro) {
   const value = (rubro || '').trim()
   if (!value) return ''
   const words = value.split(' ')
@@ -90,7 +90,7 @@ function formatRubroLabel(rubro) {
   return words.length > 1 ? `${plural} ${words.slice(1).join(' ')}` : plural
 }
 
-async function fetchProfile() {
+async function cargarPerfil() {
   loading.value = true
   try {
     const { data } = await api.get('/profile/')
@@ -108,7 +108,7 @@ async function fetchProfile() {
   }
 }
 
-async function fetchRoles() {
+async function cargarRubros() {
   try {
     const { data } = await api.get('/roles/')
     roles.value = data
@@ -117,7 +117,7 @@ async function fetchRoles() {
   }
 }
 
-async function saveProfile() {
+async function guardarPerfil() {
   saving.value = true
   error.value = ''
   try {
@@ -175,12 +175,12 @@ async function saveProfile() {
   }
 }
 
-function onPhotoChange(event) {
+function cambiarFoto(event) {
   const [file] = event.target.files || []
   selectedPhoto.value = file || null
 }
 
-function getPhotoPreviewUrl() {
+function obtenerUrlVistaPreviaFoto() {
   if (selectedPhotoPreview.value) {
     return selectedPhotoPreview.value
   }
@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
   }
 })
 
-async function addExperience() {
+async function agregarExperiencia() {
   error.value = ''
   try {
     await api.post('/experiences/', experienceForm.value)
@@ -216,22 +216,22 @@ async function addExperience() {
       is_current: false,
       description: '',
     }
-    await fetchProfile()
+    await cargarPerfil()
   } catch {
     error.value = 'No se pudo agregar la experiencia.'
   }
 }
 
-async function deleteExperience(id) {
+async function eliminarExperiencia(id) {
   try {
     await api.delete(`/experiences/${id}/`)
-    await fetchProfile()
+    await cargarPerfil()
   } catch {
     error.value = 'No se pudo eliminar la experiencia.'
   }
 }
 
-async function addReference() {
+async function agregarReferencia() {
   error.value = ''
   try {
     await api.post('/references/', referenceForm.value)
@@ -243,60 +243,60 @@ async function addReference() {
       email: '',
       note: '',
     }
-    await fetchProfile()
+    await cargarPerfil()
   } catch {
     error.value = 'No se pudo agregar la referencia.'
   }
 }
 
-async function deleteReference(id) {
+async function eliminarReferencia(id) {
   try {
     await api.delete(`/references/${id}/`)
-    await fetchProfile()
+    await cargarPerfil()
   } catch {
     error.value = 'No se pudo eliminar la referencia.'
   }
 }
 
-function logout() {
-  clearAuth()
+function cerrarSesion() {
+  limpiarAutenticacion()
   router.push('/auth')
 }
 
-onMounted(fetchProfile)
-onMounted(fetchRoles)
+onMounted(cargarPerfil)
+onMounted(cargarRubros)
 </script>
 
 <template>
-  <section v-if="loading" class="panel">Cargando perfil...</section>
+  <section v-if="loading" class="tarjeta">Cargando perfil...</section>
 
-  <section v-else class="dashboard-grid">
-    <article class="panel">
-      <div class="header-inline">
+  <section v-else class="grilla-tablero">
+    <article class="tarjeta">
+      <div class="cabecera-en-linea">
         <h2>Mi perfil profesional</h2>
-        <button class="secondary-btn" @click="logout">Cerrar sesión</button>
+        <button class="boton-secundario" @click="cerrarSesion">Cerrar sesión</button>
       </div>
-      <form class="form-grid" @submit.prevent="saveProfile">
-        <div class="profile-photo-block full-width">
+      <form class="grilla-formulario" @submit.prevent="guardarPerfil">
+        <div class="bloque-foto-perfil ancho-completo">
           <img
             v-if="selectedPhoto || profile.personal_photo_url"
-            :src="getPhotoPreviewUrl()"
+            :src="obtenerUrlVistaPreviaFoto()"
             alt="Foto personal del trabajador"
-            class="profile-photo-preview"
+            class="vista-previa-foto-perfil"
           />
-          <label class="full-width">
+          <label class="ancho-completo">
             Fotografía personal
             <input
               :key="photoInputKey"
               type="file"
               accept="image/*"
-              @change="onPhotoChange"
+              @change="cambiarFoto"
             />
           </label>
-          <small class="field-hint">Formato recomendado: JPG o PNG, imagen vertical, hasta 5 MB.</small>
+          <small class="ayuda-campo">Formato recomendado: JPG o PNG, imagen vertical, hasta 5 MB.</small>
         </div>
 
-        <h3 class="section-title full-width">Datos Personales</h3>
+        <h3 class="titulo-seccion ancho-completo">Datos Personales</h3>
         <label>
           Nombre
           <input v-model="profile.first_name" required />
@@ -305,27 +305,27 @@ onMounted(fetchRoles)
           Apellido
           <input v-model="profile.last_name" required />
         </label>
-        <div class="gender-field">
+        <div class="campo-genero">
           <span>Perfil del trabajador</span>
-          <div class="gender-options" role="group" aria-label="Seleccionar género del trabajador">
-            <label class="checkbox-label gender-option">
+          <div class="opciones-genero" role="group" aria-label="Seleccionar género del trabajador">
+            <label class="etiqueta-checkbox opcion-genero">
               <input
                 type="checkbox"
                 :checked="profile.gender === 'hombre'"
-                @change="toggleProfileGender('hombre', $event.target.checked)"
+                @change="alternarGeneroPerfil('hombre', $event.target.checked)"
               />
               Hombre
             </label>
-            <label class="checkbox-label gender-option">
+            <label class="etiqueta-checkbox opcion-genero">
               <input
                 type="checkbox"
                 :checked="profile.gender === 'mujer'"
-                @change="toggleProfileGender('mujer', $event.target.checked)"
+                @change="alternarGeneroPerfil('mujer', $event.target.checked)"
               />
               Mujer
             </label>
           </div>
-          <small class="field-hint">Esto define el avatar automático si no cargás foto.</small>
+          <small class="ayuda-campo">Esto define el avatar automático si no cargás foto.</small>
         </div>
         <label>
           DNI
@@ -335,7 +335,7 @@ onMounted(fetchRoles)
           Fecha de nacimiento
           <input v-model="profile.birth_date" type="date" />
         </label>
-        <label class="full-width">
+        <label class="ancho-completo">
           Domicilio
           <input v-model="profile.address" placeholder="Calle, número, piso" />
         </label>
@@ -347,24 +347,24 @@ onMounted(fetchRoles)
           Teléfono
           <input v-model="profile.phone" required />
         </label>
-        <label class="full-width">
+        <label class="ancho-completo">
           Redes sociales (opcional)
           <input v-model="profile.social_networks" placeholder="LinkedIn, Instagram, Facebook..." />
         </label>
 
-        <h3 class="section-title full-width">Puesto al que se postula</h3>
-        <div class="full-width roles-field">
+        <h3 class="titulo-seccion ancho-completo">Puesto al que se postula</h3>
+        <div class="ancho-completo campo-rubros">
           <span>Rubros</span>
-          <div class="roles-checkboxes" role="group" aria-label="Rubros disponibles">
-            <label v-for="roleItem in roles" :key="roleItem.id" class="checkbox-label role-checkbox">
+          <div class="casillas-rubros" role="group" aria-label="Rubros disponibles">
+            <label v-for="roleItem in roles" :key="roleItem.id" class="etiqueta-checkbox casilla-rubro">
               <input v-model="profile.roles" type="checkbox" :value="roleItem.id" />
-              {{ formatRubroLabel(roleItem.name) }}
+              {{ formatearEtiquetaRubro(roleItem.name) }}
             </label>
           </div>
-          <small class="field-hint">Podés seleccionar uno o varios rubros.</small>
+          <small class="ayuda-campo">Podés seleccionar uno o varios rubros.</small>
         </div>
 
-        <h3 class="section-title full-width">Experiencia y Disponibilidad</h3>
+        <h3 class="titulo-seccion ancho-completo">Experiencia y Disponibilidad</h3>
         <label>
           Años de experiencia
           <input v-model.number="profile.years_experience" type="number" min="0" required />
@@ -383,7 +383,7 @@ onMounted(fetchRoles)
             <option value="full_time">Full Time</option>
           </select>
         </label>
-        <label class="checkbox-label">
+        <label class="etiqueta-checkbox">
           <input v-model="profile.can_work_weekends_holidays" type="checkbox" />
           Puede trabajar fines de semana y feriados
         </label>
@@ -392,7 +392,7 @@ onMounted(fetchRoles)
           <input v-model="profile.expected_salary" placeholder="Rango salarial" />
         </label>
 
-        <h3 class="section-title full-width">Formación</h3>
+        <h3 class="titulo-seccion ancho-completo">Formación</h3>
         <label>
           Estudios primarios
           <select v-model="profile.primary_education">
@@ -409,56 +409,56 @@ onMounted(fetchRoles)
             <option value="incompleto">Incompleto</option>
           </select>
         </label>
-        <label class="checkbox-label">
+        <label class="etiqueta-checkbox">
           <input v-model="profile.tertiary_education" type="checkbox" />
           Tiene estudios terciarios/universitarios
         </label>
-        <label class="full-width">
+        <label class="ancho-completo">
           Detalles de estudios terciarios/universitarios
           <textarea v-model="profile.tertiary_details" rows="2"></textarea>
         </label>
-        <label class="full-width">
+        <label class="ancho-completo">
           Cursos gastronómicos realizados
           <textarea v-model="profile.gastro_courses" rows="2" placeholder="Detalla los cursos que has realizado"></textarea>
         </label>
 
-        <h3 class="section-title full-width">Conocimientos y Habilidades</h3>
-        <label class="full-width">
+        <h3 class="titulo-seccion ancho-completo">Conocimientos y Habilidades</h3>
+        <label class="ancho-completo">
           Habilidades (separadas por comas)
           <input v-model="profile.skills" placeholder="Ej: Atención al cliente, Cocina caliente, Pastelería..." />
         </label>
 
-        <h3 class="section-title full-width">Documentos y Certificaciones</h3>
-        <label class="checkbox-label">
+        <h3 class="titulo-seccion ancho-completo">Documentos y Certificaciones</h3>
+        <label class="etiqueta-checkbox">
           <input v-model="profile.has_sanitary_license" type="checkbox" />
           Cuenta con Libreta Sanitaria vigente
         </label>
-        <label class="checkbox-label">
+        <label class="etiqueta-checkbox">
           <input v-model="profile.has_food_handling_cert" type="checkbox" />
           Posee carnet de manipulación de alimentos
         </label>
-        <label class="checkbox-label">
+        <label class="etiqueta-checkbox">
           <input v-model="profile.has_own_transport" type="checkbox" />
           Tiene movilidad propia
         </label>
 
-        <h3 class="section-title full-width">Información General</h3>
-        <label class="full-width">
+        <h3 class="titulo-seccion ancho-completo">Información General</h3>
+        <label class="ancho-completo">
           Presentación profesional
           <textarea v-model="profile.bio" rows="4" placeholder="Contá tu recorrido y fortalezas en gastronomía"></textarea>
         </label>
-        <label class="full-width">
+        <label class="ancho-completo">
           Observaciones adicionales
           <textarea v-model="profile.observations" rows="3"></textarea>
         </label>
 
-        <button class="primary-btn full-width" type="submit" :disabled="saving">{{ saving ? 'Guardando...' : 'Guardar perfil' }}</button>
+        <button class="boton-principal ancho-completo" type="submit" :disabled="saving">{{ saving ? 'Guardando...' : 'Guardar perfil' }}</button>
       </form>
     </article>
 
-    <article class="panel">
+    <article class="tarjeta">
       <h2>Nueva experiencia</h2>
-      <form class="form-grid" @submit.prevent="addExperience">
+      <form class="grilla-formulario" @submit.prevent="agregarExperiencia">
         <label>
           Empresa
           <input v-model="experienceForm.company_name" required />
@@ -475,22 +475,22 @@ onMounted(fetchRoles)
           Fecha fin
           <input v-model="experienceForm.end_date" type="date" :disabled="experienceForm.is_current" />
         </label>
-        <label class="checkbox-label">
+        <label class="etiqueta-checkbox">
           <input v-model="experienceForm.is_current" type="checkbox" />
           Trabajo actual
         </label>
-        <label class="full-width">
+        <label class="ancho-completo">
           Descripción
           <textarea v-model="experienceForm.description" rows="3"></textarea>
         </label>
-        <button class="primary-btn" type="submit">Agregar experiencia</button>
+        <button class="boton-principal" type="submit">Agregar experiencia</button>
       </form>
-      <ExperienceList :experiences="profile.experiences" @delete="deleteExperience" />
+      <ListaExperiencias :experiences="profile.experiences" @delete="eliminarExperiencia" />
     </article>
 
-    <article class="panel">
+    <article class="tarjeta">
       <h2>Nueva referencia</h2>
-      <form class="form-grid" @submit.prevent="addReference">
+      <form class="grilla-formulario" @submit.prevent="agregarReferencia">
         <label>
           Nombre
           <input v-model="referenceForm.full_name" required />
@@ -511,21 +511,21 @@ onMounted(fetchRoles)
           Email
           <input v-model="referenceForm.email" type="email" />
         </label>
-        <label class="full-width">
+        <label class="ancho-completo">
           Nota
           <textarea v-model="referenceForm.note" rows="3"></textarea>
         </label>
-        <button class="primary-btn" type="submit">Agregar referencia</button>
+        <button class="boton-principal" type="submit">Agregar referencia</button>
       </form>
-      <ReferenceList :references="profile.references" @delete="deleteReference" />
+      <ListaReferencias :references="profile.references" @delete="eliminarReferencia" />
     </article>
 
-    <p v-if="error" class="error-text">{{ error }}</p>
+    <p v-if="error" class="texto-error">{{ error }}</p>
   </section>
 </template>
 
 <style scoped>
-.section-title {
+.titulo-seccion {
   margin-top: 2rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
@@ -535,7 +535,7 @@ onMounted(fetchRoles)
   color: #8b6f47;
 }
 
-.section-title:first-of-type {
+.titulo-seccion:first-of-type {
   margin-top: 1rem;
 }
 </style>

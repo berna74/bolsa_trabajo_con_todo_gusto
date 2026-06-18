@@ -4,7 +4,7 @@ from .models import CandidateProfile, CategoryItem, JobRole, ProfessionalReferen
 
 
 @admin.register(JobRole)
-class JobRoleAdmin(admin.ModelAdmin):
+class AdministracionRubro(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
 
@@ -19,7 +19,7 @@ class JobRoleAdmin(admin.ModelAdmin):
 
 
 @admin.register(CategoryItem)
-class CategoryItemAdmin(admin.ModelAdmin):
+class AdministracionFicha(admin.ModelAdmin):
     list_display = ("type", "name", "is_active")
     list_filter = ("type", "is_active")
     search_fields = ("name", "description")
@@ -35,8 +35,8 @@ class CategoryItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(CandidateProfile)
-class CandidateProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "first_name", "last_name", "city", "primary_role", "years_experience", "has_sanitary_license", "has_food_handling_cert")
+class AdministracionPerfilPostulante(admin.ModelAdmin):
+    list_display = ("user", "first_name", "last_name", "city", "rubro_principal", "years_experience", "has_sanitary_license", "has_food_handling_cert")
     filter_horizontal = ("roles",)
     search_fields = ("user__username", "first_name", "last_name", "dni", "email")
     fieldsets = (
@@ -63,20 +63,20 @@ class CandidateProfileAdmin(admin.ModelAdmin):
         }),
     )
 
-    def primary_role(self, obj):
+    def rubro_principal(self, obj):
         if obj.role_id:
             return obj.role.name
         first_role = obj.roles.first()
         return first_role.name if first_role else ""
 
-    primary_role.short_description = "Rubro principal"
+    rubro_principal.short_description = "Rubro principal"
 
 
 @admin.register(WorkExperience)
-class WorkExperienceAdmin(admin.ModelAdmin):
+class AdministracionExperienciaLaboral(admin.ModelAdmin):
     list_display = ("profile", "company_name", "role", "start_date", "end_date", "is_current")
 
 
 @admin.register(ProfessionalReference)
-class ProfessionalReferenceAdmin(admin.ModelAdmin):
+class AdministracionReferenciaProfesional(admin.ModelAdmin):
     list_display = ("profile", "full_name", "relation", "phone", "email")

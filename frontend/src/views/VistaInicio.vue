@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import api from '../services/api'
+import api from '../services/clienteApi'
 import femalePlaceholder from '../assets/female_placeholder_baja.png'
 import malePlaceholder from '../assets/male_placeholder_baja.png'
 
@@ -13,7 +13,7 @@ const router = useRouter()
 const selectedRubro = ref(null)
 const selectedCity = ref('all')
 
-const workerSearch = computed({
+const busquedaTrabajador = computed({
   get() {
     return typeof route.query.q === 'string' ? route.query.q : ''
   },
@@ -31,11 +31,11 @@ const workerSearch = computed({
   },
 })
 
-const searchTerm = computed(() => {
+const terminoBusqueda = computed(() => {
   return typeof route.query.q === 'string' ? route.query.q.trim().toLowerCase() : ''
 })
 
-const sortedGroups = computed(() => {
+const gruposOrdenados = computed(() => {
   return [...groups.value].sort((a, b) => {
     const countDiff = (b.workers?.length || 0) - (a.workers?.length || 0)
     if (countDiff !== 0) {
@@ -45,7 +45,7 @@ const sortedGroups = computed(() => {
   })
 })
 
-const availableCities = computed(() => {
+const ciudadesDisponibles = computed(() => {
   const cities = new Set()
   for (const group of groups.value) {
     for (const worker of group.workers || []) {
@@ -58,8 +58,8 @@ const availableCities = computed(() => {
   return [...cities].sort((a, b) => a.localeCompare(b, 'es'))
 })
 
-const filteredGroups = computed(() => {
-  let groups = sortedGroups.value
+const gruposFiltrados = computed(() => {
+  let groups = gruposOrdenados.value
   
   // Filtrar por rubro seleccionado
   if (selectedRubro.value) {
@@ -76,7 +76,7 @@ const filteredGroups = computed(() => {
   }
 
   // Filtrar por búsqueda
-  const term = searchTerm.value
+  const term = terminoBusqueda.value
   if (!term) {
     return groups.map((group) => ({
       ...group,
@@ -98,18 +98,18 @@ const filteredGroups = computed(() => {
 
 const HOME_PREVIEW = 5
 
-const previewGroups = computed(() =>
-  filteredGroups.value.map((group) => ({
+const gruposVistaPrevia = computed(() =>
+  gruposFiltrados.value.map((group) => ({
     ...group,
     workers: group.workers.slice(0, HOME_PREVIEW),
   }))
 )
 
-function rubroAnchor(rubro) {
+function anclaRubro(rubro) {
   return `rubro-${rubro.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`
 }
 
-function rubroSlug(rubro) {
+function aliasRubro(rubro) {
   return rubro
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
@@ -118,7 +118,7 @@ function rubroSlug(rubro) {
     .replace(/(^-|-$)/g, '')
 }
 
-function formatRubroLabel(rubro) {
+function formatearEtiquetaRubro(rubro) {
   const value = (rubro || '').trim()
   if (!value) return ''
   const words = value.split(' ')
@@ -136,12 +136,12 @@ function formatRubroLabel(rubro) {
   return words.length > 1 ? `${plural} ${words.slice(1).join(' ')}` : plural
 }
 
-function sanitizePhone(phone) {
+function sanearTelefono(phone) {
   return (phone || '').replace(/[^\d+]/g, '')
 }
 
-function whatsappLink(phone, name) {
-  const cleanPhone = sanitizePhone(phone)
+function enlaceWhatsApp(phone, name) {
+  const cleanPhone = sanearTelefono(phone)
   if (!cleanPhone) {
     return ''
   }
@@ -149,7 +149,7 @@ function whatsappLink(phone, name) {
   return `https://wa.me/${cleanPhone}?text=${message}`
 }
 
-function emailLink(email, name) {
+function enlaceCorreo(email, name) {
   if (!email) {
     return ''
   }
@@ -158,11 +158,11 @@ function emailLink(email, name) {
   return `mailto:${email}?subject=${subject}&body=${body}`
 }
 
-function workerFallbackPhoto(worker) {
+function fotoRespaldoTrabajador(worker) {
   return worker?.gender === 'mujer' ? femalePlaceholder : malePlaceholder
 }
 
-async function fetchWorkers() {
+async function cargarTrabajadores() {
   loading.value = true
   error.value = ''
   try {
@@ -175,83 +175,83 @@ async function fetchWorkers() {
   }
 }
 
-onMounted(fetchWorkers)
+onMounted(cargarTrabajadores)
 </script>
 
 <template>
-  <section class="panel home-panel">
-    <div class="home-header">
+  <section class="tarjeta panel-inicio">
+    <div class="encabezado-inicio">
       <h2>Trabajadores registrados por rubro</h2>
-      <label class="home-search-shell" for="worker-search-input">
-        <span class="home-search-prefix">Buscar trabajador/a...</span>
+      <label class="contenedor-busqueda-inicio" for="buscador-trabajador">
+        <span class="prefijo-busqueda-inicio">Buscar trabajador/a...</span>
         <input
-          id="worker-search-input"
-          v-model="workerSearch"
+          id="buscador-trabajador"
+          v-model="busquedaTrabajador"
           type="search"
           placeholder="Ej: Juan Perez"
-          class="home-search-input home-search-input-inline"
+          class="entrada-busqueda-inicio entrada-busqueda-interna"
         />
       </label>
-      <select v-model="selectedRubro" class="rubros-select" aria-label="Filtrar por rubro">
+      <select v-model="selectedRubro" class="selector-rubros" aria-label="Filtrar por rubro">
         <option :value="null">Todos los rubros</option>
-        <option v-for="group in sortedGroups" :key="group.rubro" :value="group.rubro">
-          {{ formatRubroLabel(group.rubro) }} ({{ group.workers.length }})
+        <option v-for="group in gruposOrdenados" :key="group.rubro" :value="group.rubro">
+          {{ formatearEtiquetaRubro(group.rubro) }} ({{ group.workers.length }})
         </option>
       </select>
-      <select v-model="selectedCity" class="rubros-select" aria-label="Filtrar por ciudad">
+      <select v-model="selectedCity" class="selector-rubros" aria-label="Filtrar por ciudad">
         <option value="all">Todas las ciudades</option>
-        <option v-for="city in availableCities" :key="city" :value="city">
+          <option v-for="city in ciudadesDisponibles" :key="city" :value="city">
           {{ city }}
         </option>
       </select>
     </div>
 
     <p v-if="loading">Cargando trabajadores...</p>
-    <p v-else-if="error" class="error-text">{{ error }}</p>
+    <p v-else-if="error" class="texto-error">{{ error }}</p>
 
     <template v-else>
-      <p v-if="!filteredGroups.length" class="empty-state">No hay trabajadores que coincidan con la búsqueda.</p>
+      <p v-if="!gruposFiltrados.length" class="estado-vacio">No hay trabajadores que coincidan con la búsqueda.</p>
 
-      <div class="role-grid">
-        <article v-for="group in previewGroups" :id="rubroAnchor(group.rubro)" :key="group.rubro" class="role-card">
+      <div class="grilla-rubros">
+        <article v-for="group in gruposVistaPrevia" :id="anclaRubro(group.rubro)" :key="group.rubro" class="tarjeta-rubro">
           <h3>
-            <router-link class="role-link" :to="`/rubro/${rubroSlug(group.rubro)}`">
-              {{ formatRubroLabel(group.rubro) }} ({{ group.total }})
+            <router-link class="enlace-rubro" :to="`/rubro/${aliasRubro(group.rubro)}`">
+              {{ formatearEtiquetaRubro(group.rubro) }} ({{ group.total }})
             </router-link>
           </h3>
-          <ul class="worker-list">
+          <ul class="lista-trabajadores">
             <li v-for="worker in group.workers" :key="worker.id">
-              <div class="worker-row">
+              <div class="fila-trabajador">
                 <img
                   v-if="worker.personal_photo_url"
                   :src="worker.personal_photo_url"
                   :alt="`Foto de ${worker.full_name}`"
-                  class="worker-photo"
+                  class="foto-trabajador"
                 />
                 <img
                   v-else
-                  :src="workerFallbackPhoto(worker)"
+                  :src="fotoRespaldoTrabajador(worker)"
                   :alt="`Placeholder de chef para ${worker.full_name}`"
-                  class="worker-photo worker-photo-placeholder"
+                  class="foto-trabajador foto-reemplazo"
                 />
-                <div class="worker-meta">
-                  <router-link class="worker-link" :to="`/trabajador/${worker.id}`">
+                <div class="metadatos-trabajador">
+                  <router-link class="enlace-trabajador" :to="`/trabajador/${worker.id}`">
                     <strong>{{ worker.full_name }}</strong>
                   </router-link>
                   <span>{{ worker.city || 'Ciudad no indicada' }}</span>
                   <span>{{ worker.years_experience }} años de experiencia</span>
                   <span v-if="worker.availability">Disponibilidad: {{ worker.availability }}</span>
-                  <div class="worker-actions">
+                  <div class="acciones-trabajador">
                     <a
-                      v-if="whatsappLink(worker.phone, worker.full_name)"
-                      :href="whatsappLink(worker.phone, worker.full_name)"
+                      v-if="enlaceWhatsApp(worker.phone, worker.full_name)"
+                      :href="enlaceWhatsApp(worker.phone, worker.full_name)"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="contact-btn"
+                      class="boton-contacto"
                       aria-label="Contactar por WhatsApp"
                       title="WhatsApp"
                     >
-                      <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <svg class="icono-boton" viewBox="0 0 24 24" aria-hidden="true">
                         <path
                           d="M12 3a8.5 8.5 0 00-7.302 12.87L4 21l5.305-1.659A8.5 8.5 0 1012 3z"
                           fill="none"
@@ -267,13 +267,13 @@ onMounted(fetchWorkers)
                       </svg>
                     </a>
                     <a
-                      v-if="emailLink(worker.email, worker.full_name)"
-                      :href="emailLink(worker.email, worker.full_name)"
-                      class="contact-btn"
+                      v-if="enlaceCorreo(worker.email, worker.full_name)"
+                      :href="enlaceCorreo(worker.email, worker.full_name)"
+                      class="boton-contacto"
                       aria-label="Contactar por Email"
                       title="Email"
                     >
-                      <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <svg class="icono-boton" viewBox="0 0 24 24" aria-hidden="true">
                         <path
                           d="M4 6h16v12H4z"
                           fill="none"
@@ -298,8 +298,8 @@ onMounted(fetchWorkers)
           </ul>
           <router-link
             v-if="group.total > 5"
-            class="role-card-more"
-            :to="`/rubro/${rubroSlug(group.rubro)}`"
+            class="ver-mas-rubro"
+            :to="`/rubro/${aliasRubro(group.rubro)}`"
           >
             Ver los {{ group.total - 5 }} restantes &rarr;
           </router-link>

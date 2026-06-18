@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import api from '../services/api'
+import api from '../services/clienteApi'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -209,41 +209,41 @@ onMounted(fetchInitialData)
 </script>
 
 <template>
-  <section class="panel">
+  <section class="tarjeta">
     <h2>Fichas</h2>
     <p class="muted-text">Gestión de rubros, requisitos, habilidades y demás categorías.</p>
 
     <p v-if="loading">Cargando gestión de fichas...</p>
 
     <template v-else>
-      <p v-if="!hasFichasAccess" class="error-text">
+      <p v-if="!hasFichasAccess" class="texto-error">
         Esta pantalla es solo para superadministradores y administradores.
       </p>
 
       <template v-else>
-        <p v-if="error" class="error-text">{{ error }}</p>
+        <p v-if="error" class="texto-error">{{ error }}</p>
         <p v-if="success" class="ok-text">{{ success }}</p>
 
         <article class="inline-card">
           <h3>Nuevo Rubro</h3>
-          <form class="form-grid" @submit.prevent="createRubro">
+          <form class="grilla-formulario" @submit.prevent="createRubro">
             <label>
               Nombre del rubro
               <input v-model="rubroForm.name" required placeholder="Ej: Ayudantes de cocina" />
             </label>
-            <button class="primary-btn" type="submit" :disabled="saving">Crear rubro</button>
+            <button class="boton-principal" type="submit" :disabled="saving">Crear rubro</button>
           </form>
 
           <ul class="inline-list">
             <li v-for="item in rubros" :key="item.id" class="inline-item">
               <template v-if="item.editing">
                 <input v-model="item.edit_name" />
-                <button class="secondary-btn" @click="updateRubro(item)" :disabled="saving">Guardar</button>
+                <button class="boton-secundario" @click="updateRubro(item)" :disabled="saving">Guardar</button>
                 <button class="ghost-btn" @click="item.editing = false">Cancelar</button>
               </template>
               <template v-else>
                 <span>{{ item.name }}</span>
-                <button class="secondary-btn" @click="beginEditRubro(item)">Editar</button>
+                <button class="boton-secundario" @click="beginEditRubro(item)">Editar</button>
                 <button class="ghost-btn" @click="deleteRubro(item)" :disabled="deletingId === `rubro-${item.id}`">Eliminar</button>
               </template>
             </li>
@@ -252,7 +252,7 @@ onMounted(fetchInitialData)
 
         <article class="inline-card">
           <h3>Nueva Ficha</h3>
-          <form class="form-grid" @submit.prevent="createFicha">
+          <form class="grilla-formulario" @submit.prevent="createFicha">
             <label>
               Tipo
               <select v-model="fichaForm.type">
@@ -263,15 +263,15 @@ onMounted(fetchInitialData)
               Nombre
               <input v-model="fichaForm.name" required placeholder="Ej: Libreta sanitaria vigente" />
             </label>
-            <label class="full-width">
+            <label class="ancho-completo">
               Descripción
               <textarea v-model="fichaForm.description" rows="2"></textarea>
             </label>
-            <label class="checkbox-label">
+            <label class="etiqueta-checkbox">
               <input v-model="fichaForm.is_active" type="checkbox" />
               Activa
             </label>
-            <button class="primary-btn" type="submit" :disabled="saving">Crear ficha</button>
+            <button class="boton-principal" type="submit" :disabled="saving">Crear ficha</button>
           </form>
 
           <div class="fichas-grid">
@@ -282,9 +282,9 @@ onMounted(fetchInitialData)
                   <template v-if="item.editing">
                     <input v-model="item.edit_name" />
                     <textarea v-model="item.edit_description" rows="2"></textarea>
-                    <label class="checkbox-label"><input v-model="item.edit_is_active" type="checkbox" /> Activa</label>
+                    <label class="etiqueta-checkbox"><input v-model="item.edit_is_active" type="checkbox" /> Activa</label>
                     <div class="item-actions">
-                      <button class="secondary-btn" @click="updateFicha(item)" :disabled="saving">Guardar</button>
+                      <button class="boton-secundario" @click="updateFicha(item)" :disabled="saving">Guardar</button>
                       <button class="ghost-btn" @click="item.editing = false">Cancelar</button>
                     </div>
                   </template>
@@ -293,7 +293,7 @@ onMounted(fetchInitialData)
                     <p>{{ item.description || 'Sin descripción' }}</p>
                     <small>{{ item.is_active ? 'Activa' : 'Inactiva' }}</small>
                     <div class="item-actions">
-                      <button class="secondary-btn" @click="beginEditFicha(item)">Editar</button>
+                      <button class="boton-secundario" @click="beginEditFicha(item)">Editar</button>
                       <button class="ghost-btn" @click="deleteFicha(item)" :disabled="deletingId === `ficha-${item.id}`">Eliminar</button>
                     </div>
                   </template>
@@ -308,9 +308,9 @@ onMounted(fetchInitialData)
                   <template v-if="item.editing">
                     <input v-model="item.edit_name" />
                     <textarea v-model="item.edit_description" rows="2"></textarea>
-                    <label class="checkbox-label"><input v-model="item.edit_is_active" type="checkbox" /> Activa</label>
+                    <label class="etiqueta-checkbox"><input v-model="item.edit_is_active" type="checkbox" /> Activa</label>
                     <div class="item-actions">
-                      <button class="secondary-btn" @click="updateFicha(item)" :disabled="saving">Guardar</button>
+                      <button class="boton-secundario" @click="updateFicha(item)" :disabled="saving">Guardar</button>
                       <button class="ghost-btn" @click="item.editing = false">Cancelar</button>
                     </div>
                   </template>
@@ -319,7 +319,7 @@ onMounted(fetchInitialData)
                     <p>{{ item.description || 'Sin descripción' }}</p>
                     <small>{{ item.is_active ? 'Activa' : 'Inactiva' }}</small>
                     <div class="item-actions">
-                      <button class="secondary-btn" @click="beginEditFicha(item)">Editar</button>
+                      <button class="boton-secundario" @click="beginEditFicha(item)">Editar</button>
                       <button class="ghost-btn" @click="deleteFicha(item)" :disabled="deletingId === `ficha-${item.id}`">Eliminar</button>
                     </div>
                   </template>
@@ -334,9 +334,9 @@ onMounted(fetchInitialData)
                   <template v-if="item.editing">
                     <input v-model="item.edit_name" />
                     <textarea v-model="item.edit_description" rows="2"></textarea>
-                    <label class="checkbox-label"><input v-model="item.edit_is_active" type="checkbox" /> Activa</label>
+                    <label class="etiqueta-checkbox"><input v-model="item.edit_is_active" type="checkbox" /> Activa</label>
                     <div class="item-actions">
-                      <button class="secondary-btn" @click="updateFicha(item)" :disabled="saving">Guardar</button>
+                      <button class="boton-secundario" @click="updateFicha(item)" :disabled="saving">Guardar</button>
                       <button class="ghost-btn" @click="item.editing = false">Cancelar</button>
                     </div>
                   </template>
@@ -345,7 +345,7 @@ onMounted(fetchInitialData)
                     <p>{{ item.description || 'Sin descripción' }}</p>
                     <small>{{ item.is_active ? 'Activa' : 'Inactiva' }}</small>
                     <div class="item-actions">
-                      <button class="secondary-btn" @click="beginEditFicha(item)">Editar</button>
+                      <button class="boton-secundario" @click="beginEditFicha(item)">Editar</button>
                       <button class="ghost-btn" @click="deleteFicha(item)" :disabled="deletingId === `ficha-${item.id}`">Eliminar</button>
                     </div>
                   </template>

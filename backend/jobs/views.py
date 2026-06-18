@@ -3,88 +3,104 @@ from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from .models import CandidateProfile, CategoryItem, JobRole, ProfessionalReference, WorkExperience
 from .roles import (
-    APP_ROLE_ADMIN,
-    APP_ROLE_WORKER,
-    GROUP_NAME_ADMIN,
-    GROUP_NAME_WORKER,
-    assign_user_role,
+    NOMBRE_GRUPO_ADMIN,
+    NOMBRE_GRUPO_TRABAJADOR,
+    ROL_APLICACION_TRABAJADOR,
+    asignar_rol_usuario,
 )
 from .serializers import (
-    CategoryItemSerializer,
-    CandidateProfileSerializer,
-    JobRoleSerializer,
-    ProfessionalReferenceSerializer,
-    RegisterSerializer,
-    UserSerializer,
-    UserRoleUpdateSerializer,
-    WorkExperienceSerializer,
+    SerializadorActualizacionRolUsuario,
+    SerializadorCierreSesion,
+    SerializadorExperienciaLaboral,
+    SerializadorFicha,
+    SerializadorPerfilPostulante,
+    SerializadorReferenciaProfesional,
+    SerializadorRegistro,
+    SerializadorRubro,
+    SerializadorUsuario,
 )
 
 
-class IsSuperAdmin(permissions.BasePermission):
+class EsSuperAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.is_superuser)
 
 
-class IsAdminOrSuperAdmin(permissions.BasePermission):
+class EsAdminOSuperAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        return request.user.is_superuser or request.user.groups.filter(name=GROUP_NAME_ADMIN).exists()
+        return request.user.is_superuser or request.user.groups.filter(name=NOMBRE_GRUPO_ADMIN).exists()
 
 
-class IsWorker(permissions.BasePermission):
+class EsTrabajador(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        return request.user.is_superuser or request.user.groups.filter(name=GROUP_NAME_WORKER).exists()
+        return request.user.is_superuser or request.user.groups.filter(name=NOMBRE_GRUPO_TRABAJADOR).exists()
 
 
-class JobRoleViewSet(viewsets.ModelViewSet):
+class VistaConjuntoRubros(viewsets.ModelViewSet):
     queryset = JobRole.objects.all()
-    serializer_class = JobRoleSerializer
+    serializer_class = SerializadorRubro
 
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:
             return [permissions.AllowAny()]
-        return [IsAdminOrSuperAdmin()]
+        return [EsAdminOSuperAdmin()]
 
 
-class CategoryItemViewSet(viewsets.ModelViewSet):
+class VistaConjuntoFichas(viewsets.ModelViewSet):
     queryset = CategoryItem.objects.all()
-    serializer_class = CategoryItemSerializer
+    serializer_class = SerializadorFicha
 
     def get_permissions(self):
-        return [IsAdminOrSuperAdmin()]
+        return [EsAdminOSuperAdmin()]
 
 
-class RegisterView(generics.CreateAPIView):
-    serializer_class = RegisterSerializer
+class VistaRegistro(generics.CreateAPIView):
+    serializer_class = SerializadorRegistro
     permission_classes = [permissions.AllowAny]
 
 
-class MeView(generics.RetrieveAPIView):
-    serializer_class = UserSerializer
+class VistaCierreSesion(generics.GenericAPIView):
+    serializer_class = SerializadorCierreSesion
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            RefreshToken(serializer.validated_data["refresh"]).blacklist()
+        except TokenError:
+            return Response({"detail": "Refresh token inválido o expirado."}, status=400)
+
+        return Response(status=204)
+
+
+class VistaUsuarioActual(generics.RetrieveAPIView):
+    serializer_class = SerializadorUsuario
 
     def get_object(self):
         return self.request.user
 
 
-class CandidateProfileView(generics.RetrieveUpdateAPIView):
-    serializer_class = CandidateProfileSerializer
-    permission_classes = [IsWorker]
+class VistaPerfilPostulante(generics.RetrieveUpdateAPIView):
+    serializer_class = SerializadorPerfilPostulante
+    permission_classes = [EsTrabajador]
 
     def get_object(self):
         profile, _ = CandidateProfile.objects.get_or_create(user=self.request.user)
         return profile
 
 
-class WorkExperienceViewSet(viewsets.ModelViewSet):
-    serializer_class = WorkExperienceSerializer
-    permission_classes = [IsWorker]
+class VistaConjuntoExperienciasLaborales(viewsets.ModelViewSet):
+    serializer_class = SerializadorExperienciaLaboral
+    permission_classes = [EsTrabajador]
 
     def get_queryset(self):
         profile, _ = CandidateProfile.objects.get_or_create(user=self.request.user)
@@ -95,9 +111,9 @@ class WorkExperienceViewSet(viewsets.ModelViewSet):
         serializer.save(profile=profile)
 
 
-class ProfessionalReferenceViewSet(viewsets.ModelViewSet):
-    serializer_class = ProfessionalReferenceSerializer
-    permission_classes = [IsWorker]
+class VistaConjuntoReferenciasProfesionales(viewsets.ModelViewSet):
+    serializer_class = SerializadorReferenciaProfesional
+    permission_classes = [EsTrabajador]
 
     def get_queryset(self):
         profile, _ = CandidateProfile.objects.get_or_create(user=self.request.user)
@@ -108,14 +124,14 @@ class ProfessionalReferenceViewSet(viewsets.ModelViewSet):
         serializer.save(profile=profile)
 
 
-class HealthCheckView(generics.GenericAPIView):
+class VistaChequeoSalud(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         return Response({"status": "ok", "service": "contodogusto-bolsa-api"})
 
 
-class PublicWorkersByRoleView(generics.GenericAPIView):
+class VistaTrabajadoresPublicosPorRubro(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
@@ -196,24 +212,24 @@ class PublicWorkersByRoleView(generics.GenericAPIView):
         return Response(response)
 
 
-class UserManagementViewSet(viewsets.ReadOnlyModelViewSet):
+class VistaConjuntoGestionUsuarios(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all().order_by("id")
-    serializer_class = UserSerializer
-    permission_classes = [IsAdminOrSuperAdmin]
+    serializer_class = SerializadorUsuario
+    permission_classes = [EsAdminOSuperAdmin]
 
     @action(detail=True, methods=["patch"], url_path="role")
-    def update_role(self, request, pk=None):
+    def actualizar_rol(self, request, pk=None):
         target_user = self.get_object()
 
         if target_user.is_superuser and not request.user.is_superuser:
             raise PermissionDenied("Solo un superadministrador puede modificar otro superadministrador.")
 
-        serializer = UserRoleUpdateSerializer(data=request.data)
+        serializer = SerializadorActualizacionRolUsuario(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_role = serializer.validated_data["app_role"]
 
-        assign_user_role(target_user, new_role)
-        if new_role == APP_ROLE_WORKER:
+        asignar_rol_usuario(target_user, new_role)
+        if new_role == ROL_APLICACION_TRABAJADOR:
             CandidateProfile.objects.get_or_create(user=target_user)
 
-        return Response(UserSerializer(target_user).data)
+        return Response(SerializadorUsuario(target_user).data)

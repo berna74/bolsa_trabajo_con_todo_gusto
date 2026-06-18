@@ -1,10 +1,10 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import api from '../services/api'
+import api from '../services/clienteApi'
 
 const groups = ref([])
 
-function rubroSlug(rubro) {
+function aliasRubro(rubro) {
   return rubro
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
@@ -13,7 +13,7 @@ function rubroSlug(rubro) {
     .replace(/(^-|-$)/g, '')
 }
 
-function formatRubroLabel(rubro) {
+function formatearEtiquetaRubro(rubro) {
   const value = (rubro || '').trim()
   if (!value) return ''
   const words = value.split(' ')
@@ -44,18 +44,18 @@ onMounted(fetchGroups)
 </script>
 
 <template>
-  <nav class="rubros-header-nav" aria-label="Rubros">
+  <nav class="navegacion-rubros" aria-label="Rubros">
     <router-link
       v-for="group in groups"
       :key="group.rubro"
-      :to="`/rubro/${rubroSlug(group.rubro)}`"
-      class="rubros-header-link"
+      :to="`/rubro/${aliasRubro(group.rubro)}`"
+      class="enlace-rubro-encabezado"
     >
-      <span class="rubros-header-link-name">{{ formatRubroLabel(group.rubro) }}</span>
-      <span class="rubros-header-link-count">{{ group.workers.length }}</span>
+      <span class="nombre-rubro-encabezado">{{ formatearEtiquetaRubro(group.rubro) }}</span>
+      <span class="contador-rubro-encabezado">{{ group.workers.length }}</span>
     </router-link>
-    <router-link to="/" class="rubros-header-link">
-      <span class="rubros-header-link-name">Todos</span>
+    <router-link to="/" class="enlace-rubro-encabezado">
+      <span class="nombre-rubro-encabezado">Todos</span>
     </router-link>
   </nav>
 </template>

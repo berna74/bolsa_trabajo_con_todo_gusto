@@ -19,6 +19,7 @@ Aplicación full stack para que trabajadores gastronómicos puedan registrarse, 
    ```bash
    docker compose up --build
    ```
+   El contenedor backend ejecuta migraciones automáticamente al iniciar, incluyendo las de `rest_framework_simplejwt.token_blacklist`.
 3. URLs:
    - Frontend: `http://localhost:5174`
    - Backend API: `http://localhost:8001/api`
@@ -35,10 +36,22 @@ Aplicación full stack para que trabajadores gastronómicos puedan registrarse, 
 - `POST /api/auth/register/`
 - `POST /api/auth/login/`
 - `POST /api/auth/refresh/`
+- `POST /api/auth/logout/`
 - `GET /api/auth/me/`
 - `GET/PUT /api/profile/`
 - `GET/POST/DELETE /api/experiences/`
 - `GET/POST/DELETE /api/references/`
+
+## Autenticación
+- El backend usa JWT con `access` y `refresh` mediante SimpleJWT.
+- El frontend persiste ambos tokens, intenta refresh automático cuando un `access` expira y reintenta la request original.
+- El logout invalida el `refresh` token en backend usando la blacklist de SimpleJWT antes de limpiar la sesión local.
+
+## Troubleshooting
+- Si el frontend en Docker falla con errores de imports (por ejemplo, `Failed to resolve import "pinia"`), resincronizá dependencias dentro del contenedor y reinicialo:
+   ```bash
+   docker compose exec frontend npm install && docker compose restart frontend
+   ```
 
 ## Nota de diseño
 No fue posible consultar automáticamente `contodogusto.com.ar` desde el entorno actual. Se aplicó una estética gastronómica cálida (tonos tierra, acentos anaranjados y tipografía editorial) para mantener una identidad visual coherente con una marca del rubro.

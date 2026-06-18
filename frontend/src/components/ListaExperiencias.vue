@@ -10,10 +10,10 @@ const emit = defineEmits(['delete'])
 </script>
 
 <template>
-  <div class="list-section">
+  <div class="seccion-lista">
     <h3>Experiencia laboral</h3>
-    <article v-for="item in experiences" :key="item.id" class="list-card">
-      <div class="list-head">
+    <article v-for="item in experiences" :key="item.id" class="tarjeta-lista">
+      <div class="cabecera-lista">
         <strong>{{ item.role }}</strong>
         <button class="danger-btn" @click="emit('delete', item.id)">Eliminar</button>
       </div>

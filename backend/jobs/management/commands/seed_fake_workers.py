@@ -6,34 +6,34 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 
 from jobs.models import CandidateProfile, JobRole
-from jobs.roles import APP_ROLE_WORKER, assign_user_role
+from jobs.roles import ROL_APLICACION_TRABAJADOR, asignar_rol_usuario
 
-FIRST_NAMES = [
+NOMBRES = [
     "Ana", "Luis", "Carla", "Martin", "Rocio", "Diego", "Valeria", "Pablo", "Julieta", "Marcos",
     "Camila", "Bruno", "Sofia", "Tomas", "Agustina", "Nicolas", "Florencia", "Javier", "Micaela", "Gonzalo",
 ]
 
-FEMALE_FIRST_NAMES = {
+NOMBRES_FEMENINOS = {
     "ana", "carla", "rocio", "valeria", "julieta", "camila", "sofia",
     "agustina", "florencia", "micaela",
 }
 
-LAST_NAMES = [
+APELLIDOS = [
     "Garcia", "Perez", "Lopez", "Gomez", "Diaz", "Fernandez", "Sosa", "Romero", "Alvarez", "Torres",
     "Ruiz", "Acosta", "Molina", "Silva", "Castro", "Rojas", "Vega", "Navarro", "Ibarra", "Morales",
 ]
 
-CITIES = [
+CIUDADES = [
     "Buenos Aires", "Cordoba", "Rosario", "Mendoza", "La Plata", "Mar del Plata", "Salta", "Santa Fe",
     "Tucuman", "Neuquen", "San Juan", "Resistencia", "Posadas", "Parana", "Corrientes",
 ]
 
-ROLE_FALLBACKS = [
+RUBROS_RESERVA = [
     "Cocinero", "Camarero", "Parrillero", "Pastelero", "Bartender",
     "Barista", "Panadero", "Pizzero", "Encargado de salon", "Ayudantes de cocina",
 ]
 
-AVAILABILITY = [
+DISPONIBILIDADES = [
     "Full time",
     "Part time",
     "Noches",
@@ -42,7 +42,7 @@ AVAILABILITY = [
     "Turno tarde",
 ]
 
-BIO_TEMPLATES = [
+PLANTILLAS_BIO = [
     "Trabajador con enfoque en servicio y calidad en {role}.",
     "Experiencia comprobable en {role} y trabajo en equipo.",
     "Perfil proactivo para tareas de {role} en ritmo de alta demanda.",
@@ -50,7 +50,7 @@ BIO_TEMPLATES = [
 ]
 
 
-def fetch_real_photo():
+def descargar_foto_real():
     """Descarga una foto real de persona desde randomuser.me API."""
     try:
         response = requests.get("https://randomuser.me/api/", timeout=10)
@@ -66,7 +66,7 @@ def fetch_real_photo():
         return None
 
 
-def build_chef_avatar_svg(is_male=True):
+def construir_svg_chef(is_male=True):
     """Genera SVG de chef estilo restaurante moderno con dos variantes."""
     if is_male:
         svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
@@ -154,7 +154,7 @@ class Command(BaseCommand):
 
         roles = list(JobRole.objects.order_by("name"))
         if not roles:
-            for role_name in ROLE_FALLBACKS:
+            for role_name in RUBROS_RESERVA:
                 JobRole.objects.get_or_create(name=role_name)
             roles = list(JobRole.objects.order_by("name"))
 
@@ -170,9 +170,9 @@ class Command(BaseCommand):
         created = 0
         updated = 0
         for index, role in enumerate(role_sequence, start=1):
-            first_name = rng.choice(FIRST_NAMES)
-            last_name = rng.choice(LAST_NAMES)
-            city = CITIES[(index - 1) % len(CITIES)]
+            first_name = rng.choice(NOMBRES)
+            last_name = rng.choice(APELLIDOS)
+            city = CIUDADES[(index - 1) % len(CIUDADES)]
 
             username = f"fake_worker_{index:03d}"
             email = f"{username}@example.com"
@@ -191,18 +191,18 @@ class Command(BaseCommand):
             user.last_name = last_name
             user.set_password(password)
             user.save(update_fields=["email", "first_name", "last_name", "password"])
-            assign_user_role(user, APP_ROLE_WORKER)
+            asignar_rol_usuario(user, ROL_APLICACION_TRABAJADOR)
 
             profile, _ = CandidateProfile.objects.get_or_create(user=user)
             profile.first_name = first_name
             profile.last_name = last_name
-            profile.gender = "mujer" if first_name.lower() in FEMALE_FIRST_NAMES else "hombre"
+            profile.gender = "mujer" if first_name.lower() in NOMBRES_FEMENINOS else "hombre"
             profile.phone = f"+54 9 11 5{index:06d}"
             profile.city = city
             profile.role = role
             profile.years_experience = rng.randint(1, 16)
-            profile.availability = rng.choice(AVAILABILITY)
-            profile.bio = rng.choice(BIO_TEMPLATES).format(role=role.name.lower())
+            profile.availability = rng.choice(DISPONIBILIDADES)
+            profile.bio = rng.choice(PLANTILLAS_BIO).format(role=role.name.lower())
             if profile.personal_photo:
                 profile.personal_photo.delete(save=False)
             profile.save()
@@ -213,12 +213,12 @@ class Command(BaseCommand):
             
             if is_chef_avatar:
                 is_male = index % 2 == 0
-                svg_bytes = build_chef_avatar_svg(is_male=is_male)
+                svg_bytes = construir_svg_chef(is_male=is_male)
                 avatar_name = f"chefs/{'male_v4' if is_male else 'female_v4'}.svg"
                 profile.personal_photo.save(avatar_name, ContentFile(svg_bytes), save=True)
                 print(f"  👨‍🍳 {username}: SVG chef {'hombre' if is_male else 'mujer'}")
             else:
-                photo_bytes = fetch_real_photo()
+                photo_bytes = descargar_foto_real()
                 if photo_bytes:
                     avatar_name = f"real/{index:03d}.jpg"
                     profile.personal_photo.save(avatar_name, ContentFile(photo_bytes), save=True)

@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 from jobs.models import CandidateProfile
 
-FEMALE_FIRST_NAMES = {
+NOMBRES_FEMENINOS = {
     "ana", "carla", "rocio", "rocío", "valeria", "julieta", "camila", "sofia", "sofía",
     "agustina", "florencia", "micaela", "valentina", "abrina", "eugenia",
 }
@@ -17,18 +17,18 @@ class Command(BaseCommand):
     help = "Completa el campo gender en perfiles existentes según el nombre."
 
     def handle(self, *args, **options):
-        profiles = CandidateProfile.objects.filter(gender="")
+        perfiles = CandidateProfile.objects.filter(gender="")
         mujer = hombre = 0
 
-        for profile in profiles:
-            name = (profile.first_name or "").strip().lower()
-            if name in FEMALE_FIRST_NAMES:
-                profile.gender = "mujer"
+        for perfil in perfiles:
+            nombre = (perfil.first_name or "").strip().lower()
+            if nombre in NOMBRES_FEMENINOS:
+                perfil.gender = "mujer"
                 mujer += 1
             else:
-                profile.gender = "hombre"
+                perfil.gender = "hombre"
                 hombre += 1
-            profile.save(update_fields=["gender"])
+            perfil.save(update_fields=["gender"])
 
         self.stdout.write(
             self.style.SUCCESS(
