@@ -58,7 +58,7 @@ watch(() => route.fullPath, actualizarAccesoFichas)
                   stroke-linejoin="round"
                 />
               </svg>
-              Ingresar / Registrarse
+              Ingresar
             </router-link>
             <router-link to="/tablero">Mi perfil</router-link>
           </nav>

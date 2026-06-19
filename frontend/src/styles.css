@@ -907,7 +907,8 @@ textarea:focus {
 
 @media (max-width: 720px) {
   .brand-logo {
-    width: min(151px, 48vw);
+    width: 100%;
+    max-width: 100%;
   }
 
   .franja-superior {
@@ -923,13 +924,19 @@ textarea:focus {
     flex-direction: column;
   }
 
+  .enlace-logo {
+    width: 100%;
+    align-self: center;
+    justify-content: center;
+  }
+
   .navegacion-principal {
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: center;
   }
 
   .franja-superior .navegacion-principal {
-    justify-content: flex-start;
+    justify-content: center;
     margin-left: 0;
     width: 100%;
   }
